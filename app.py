@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 
 st.set_page_config(page_title="Mission Germany", page_icon="🇩🇪", layout="wide")
 st.title("🇩🇪 Mission Germany: Masters Application Tracker")
@@ -25,8 +25,15 @@ with tab1:
     st.checkbox("1. Recognition of University & Degree through Anabin")
     st.checkbox("2. CGPA Check")
     st.checkbox("3. Semester Mark sheets available")
+    
+    # File uploaders for the user's documents
+    uploaded_marksheets = st.file_uploader("📤 Upload Semester Marksheets (PDF)", type=["pdf"], accept_multiple_files=True)
+    
     st.checkbox("4. Degree Certificate / Provisional available")
+    uploaded_degree = st.file_uploader("📤 Upload Degree Certificate / Provisional (PDF)", type=["pdf"])
+    
     st.checkbox("5. Passport Validity verified & Aadhar mobile linked")
+    uploaded_passport = st.file_uploader("📤 Upload Passport Copy (PDF/Image)", type=["pdf", "png", "jpg"])
 
 with tab2:
     st.subheader("Stage 2: Pre-Application Steps")
