@@ -7,6 +7,7 @@ st.set_page_config(page_title="Mission Germany CRM", layout="wide")
 
 st.sidebar.title("Login")
 user_email = st.sidebar.text_input("Enter your email")
+user_password = st.sidebar.text_input("Enter your password", type="password")
 
 cloudinary.config(
     cloud_name=st.secrets["cloudinary"]["cloud_name"],
@@ -26,7 +27,7 @@ def get_sheet(tab_name):
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     
-    spreadsheet = client.open("Your_Google_Sheet_Name") 
+    spreadsheet = client.open("Mission_Germany_CRM") 
     return spreadsheet.worksheet(tab_name)
 
 if user_email == "yousuf@gmail.com":
