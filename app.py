@@ -15,16 +15,15 @@ cloudinary.config(
 
 # --- GOOGLE SHEETS CONNECTION ---
 @st.cache_resource
-def get_sheet():
+def get_sheet(tab_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    # Convert secrets to dict and handle the newline character in the private key
     creds_dict = dict(st.secrets["gcp_service_account"])
     creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
     
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    # This opens the first tab of your Google Sheet
-    return client.open("Mission_Germany_CRM").sheet1
+    # Opens the specific tab (worksheets) by name
+    return client.open("Mission_Germany_CRM").worksheet(tab_name)
 
 # --- LOGIN LOGIC ---
 st.sidebar.title("Login")
@@ -35,15 +34,16 @@ password = st.sidebar.text_input("Password", type="password")
 if user_email == "yousuf@gmail.com":
     st.header("Admin Dashboard: Manage Students")
     try:
-        sheet = get_sheet()
+        # Access the "Students" tab specifically
+        sheet = get_sheet("Students")
         data = sheet.get_all_records()
         if data:
             st.dataframe(data, use_container_width=True)
         else:
-            st.write("No student records found in the sheet.")
+            st.write("No student records found in the 'Students' tab.")
     except Exception as e:
         st.error(f"Error connecting to Google Sheets: {e}")
-        st.write("Please ensure the Google Sheet 'Mission_Germany_CRM' is shared with your Service Account email.")
+        st.write("Check that your sheet name is 'Mission_Germany_CRM' and tab name is 'Students'.")
 
 elif user_email:
     st.header(f"Welcome, {user_email}")
