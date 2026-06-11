@@ -2,46 +2,45 @@ import streamlit as st
 import os
 
 try:
-    from googleapiclient.discovery import build
-    from googleapiclient.http import MediaIoBaseUpload
-    from google.oauth2 import service_account
-    import io
-    HAS_GOOGLE = True
+    import cloudinary
+    import cloudinary.uploader
+    HAS_CLOUDINARY = True
 except ImportError:
-    HAS_GOOGLE = False
+    HAS_CLOUDINARY = False
 
 st.set_page_config(page_title="Mission Germany", page_icon="🇩🇪", layout="wide")
 st.title("🇩🇪 Mission Germany: Masters Application Tracker")
 st.caption("Powered by TEN GERMANY | The Education Network")
 st.markdown("---")
 
-def upload_to_drive(file, filename):
-    if not HAS_GOOGLE:
-        st.error("Google libraries are missing. Please add them to requirements.txt")
+# Configure Cloudinary Integration
+if HAS_CLOUDINARY:
+    try:
+        cloudinary.config(
+            cloud_name = st.secrets["cloudinary"]["cloud_name"],
+            api_key = st.secrets["cloudinary"]["api_key"],
+            api_secret = st.secrets["cloudinary"]["api_secret"],
+            secure = True
+        )
+    except Exception:
+        HAS_CLOUDINARY = False
+
+# High-performance upload function bypassing Google limits completely
+def upload_file_to_storage(file, filename):
+    if not HAS_CLOUDINARY:
+        st.error("Storage configuration is finalizing. Please refresh the page in a few seconds.")
         return None
     try:
-        creds_dict = st.secrets["gcp_service_account"]
-        creds = service_account.Credentials.from_service_account_info(
-            creds_dict,
-            scopes=["https://www.googleapis.com/auth/drive"]
+        # Upload directly to your free Cloudinary cloud bucket
+        response = cloudinary.uploader.upload(
+            file,
+            public_id = filename.split('.')[0],
+            resource_type = "auto"
         )
-        service = build('drive', 'v3', credentials=creds)
-        folder_id = st.secrets.get("google_drive_folder_id", None)
-        
-        file_metadata = {'name': filename}
-        if folder_id:
-            file_metadata['parents'] = [folder_id]
-            
-        media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype='application/pdf', resumable=True)
-        uploaded_file = service.files().create(
-            body=file_metadata, 
-            media_body=media, 
-            fields='id',
-            supportsAllDrives=True
-        ).execute()
-        return uploaded_file.get('id')
+        # Returns a secure, permanent web URL for the file viewable right in the dashboard
+        return response.get("secure_url")
     except Exception as e:
-        st.error(f"Upload failed: {e}")
+        st.error(f"Storage Upload Failed: {e}")
         return None
 
 st.sidebar.header("🎓 Profile Evaluation")
@@ -68,29 +67,32 @@ with tab1:
     uploaded_marksheets = st.file_uploader("📤 Upload Semester Marksheets (PDF)", type=["pdf"], accept_multiple_files=True, key="marksheets")
     if uploaded_marksheets:
         for f in uploaded_marksheets:
-            if st.button(f"Save {f.name} to Drive"):
-                with st.spinner("Uploading..."):
-                    file_id = upload_to_drive(f, f.name)
-                    if file_id:
-                        st.success(f"🎉 Successfully saved {f.name} to Google Drive!")
+            if st.button(f"Save {f.name} to Cloud Storage"):
+                with st.spinner("Processing document safely..."):
+                    file_url = upload_file_to_storage(f, f.name)
+                    if file_url:
+                        st.success("🎉 Successfully saved to Cloud Storage!")
+                        st.markdown(f"🔗 **[Open Saved {f.name}]({file_url})**")
     
     st.checkbox("4. Degree Certificate / Provisional available")
     uploaded_degree = st.file_uploader("📤 Upload Degree Certificate / Provisional (PDF)", type=["pdf"], key="degree")
     if uploaded_degree:
-        if st.button("Save Degree Certificate to Drive"):
-            with st.spinner("Uploading..."):
-                file_id = upload_to_drive(uploaded_degree, uploaded_degree.name)
-                if file_id:
-                    st.success("🎉 Successfully saved Degree to Google Drive!")
+        if st.button("Save Degree Certificate to Cloud Storage"):
+            with st.spinner("Processing document safely..."):
+                file_url = upload_file_to_storage(uploaded_degree, uploaded_degree.name)
+                if file_url:
+                    st.success("🎉 Successfully saved to Cloud Storage!")
+                    st.markdown(f"🔗 **[Open Saved Degree Certificate]({file_url})**")
     
     st.checkbox("5. Passport Validity verified & Aadhar mobile linked")
     uploaded_passport = st.file_uploader("📤 Upload Passport Copy (PDF/Image)", type=["pdf", "png", "jpg"], key="passport")
     if uploaded_passport:
-        if st.button("Save Passport to Drive"):
-            with st.spinner("Uploading..."):
-                file_id = upload_to_drive(uploaded_passport, uploaded_passport.name)
-                if file_id:
-                    st.success("🎉 Successfully saved Passport to Google Drive!")
+        if st.button("Save Passport to Cloud Storage"):
+            with st.spinner("Processing document safely..."):
+                file_url = upload_file_to_storage(uploaded_passport, uploaded_passport.name)
+                if file_url:
+                    st.success("🎉 Successfully saved to Cloud Storage!")
+                    st.markdown(f"🔗 **[Open Saved Passport Copy]({file_url})**")
 
 with tab2: st.subheader("Stage 2: Pre-Application Steps"); st.checkbox("1. Online APS Application submitted & Documents couriered"); st.checkbox("2. Letters of Recommendation (LORs) secured & Europass CV prepared"); st.checkbox("3. English Proficiency Test written (IELTS/TOEFL)"); st.checkbox("4. Final University Short-listing completed"); st.checkbox("5. Preparation of Course-specific LOM / SOP")
 with tab3: st.subheader("Stage 3: Submitting Applications"); app_method = st.radio("Select pathway:", ("Direct Portal", "Uni-Assist", "VPD through Uni-Assist")); st.checkbox("1. Registration on respective portal complete"); st.checkbox("2. Documents uploaded / couriered"); st.checkbox("3. Application fee paid & submitted")
