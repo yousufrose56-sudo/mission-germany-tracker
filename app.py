@@ -17,15 +17,18 @@ cloudinary.config(
 @st.cache_resource
 def get_sheet(tab_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    secrets_dict = dict(st.secrets["gcp_service_account"])
     
-    # Clean and format the key
-    raw_key = secrets_dict["private_key"].strip()
-    formatted_key = f"-----BEGIN PRIVATE KEY-----\n{raw_key}\n-----END PRIVATE KEY-----\n"
-    secrets_dict["private_key"] = formatted_key
+    # Create a copy of secrets dictionary
+    creds_dict = dict(st.secrets["gcp_service_account"])
     
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(secrets_dict, scope)
+    # Format the private key
+    raw_key = creds_dict["private_key"].strip()
+    creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{raw_key}\n-----END PRIVATE KEY-----\n"
+    
+    # Authorize
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
+    
     return client.open("Mission_Germany_CRM").worksheet(tab_name)
 
 # --- LOGIN LOGIC ---
@@ -37,7 +40,6 @@ password = st.sidebar.text_input("Password", type="password")
 if user_email == "yousuf@gmail.com":
     st.header("Admin Dashboard: Manage Data")
     
-    # Create tabs for Students and Team
     tab1, tab2 = st.tabs(["Students Data", "Team Data"])
     
     with tab1:
@@ -45,10 +47,7 @@ if user_email == "yousuf@gmail.com":
             st.subheader("Student Records")
             students_sheet = get_sheet("Students")
             students_data = students_sheet.get_all_records()
-            if students_data:
-                st.dataframe(students_data, use_container_width=True)
-            else:
-                st.write("No records found in 'Students' tab.")
+            st.dataframe(students_data, use_container_width=True) if students_data else st.write("No records.")
         except Exception as e:
             st.error(f"Error loading Students: {e}")
 
@@ -57,10 +56,7 @@ if user_email == "yousuf@gmail.com":
             st.subheader("Team Records")
             team_sheet = get_sheet("Team")
             team_data = team_sheet.get_all_records()
-            if team_data:
-                st.dataframe(team_data, use_container_width=True)
-            else:
-                st.write("No records found in 'Team' tab.")
+            st.dataframe(team_data, use_container_width=True) if team_data else st.write("No records.")
         except Exception as e:
             st.error(f"Error loading Team: {e}")
 
