@@ -25,13 +25,10 @@ def upload_to_drive(file, filename):
         # Load credentials from Streamlit Secrets
         creds_dict = st.secrets["gcp_service_account"]
         
-        # FIXED: Using your real email address to bypass the 0-byte quota wall
-        user_to_impersonate = "yousufrose56@gmail.com" 
-        
+        # Standard authentication without domain impersonation (Fixes unauthorized_client error)
         creds = service_account.Credentials.from_service_account_info(
             creds_dict,
-            scopes=["https://www.googleapis.com/auth/drive"],
-            subject=user_to_impersonate
+            scopes=["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
         )
         service = build('drive', 'v3', credentials=creds)
         
@@ -42,13 +39,14 @@ def upload_to_drive(file, filename):
         if folder_id:
             file_metadata['parents'] = [folder_id]
             
-        media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype='application/pdf', resumable=True)
+        # Using simple media upload with proper stream positioning
+        file_data = file.read()
+        media = MediaIoBaseUpload(io.BytesIO(file_data), mimetype='application/pdf', resumable=False)
         
         uploaded_file = service.files().create(
             body=file_metadata, 
             media_body=media, 
-            fields='id',
-            supportsAllDrives=True
+            fields='id'
         ).execute()
         
         return uploaded_file.get('id')
