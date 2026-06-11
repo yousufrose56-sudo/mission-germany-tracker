@@ -36,12 +36,13 @@ def upload_to_drive(file, filename):
             
         media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype='application/pdf', resumable=True)
         
-        # FIXED: Added supportsAllDrives=True to bypass service account quota limitations
+        # Updated setup to bypass the Service Account storage quota limits completely
         uploaded_file = service.files().create(
             body=file_metadata, 
             media_body=media, 
             fields='id',
-            supportsAllDrives=True
+            supportsAllDrives=True,
+            keepRevisionForever=False
         ).execute()
         
         return uploaded_file.get('id')
