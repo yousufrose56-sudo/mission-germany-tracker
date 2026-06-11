@@ -41,15 +41,31 @@ def upload_to_drive(file, filename):
         file_data = file.read()
         media = MediaIoBaseUpload(io.BytesIO(file_data), mimetype='application/pdf', resumable=True)
         
-        # Create the file with strict override flags to force acceptance into shared directories
+        # 1. Create the file under the service account
         uploaded_file = service.files().create(
             body=file_metadata, 
             media_body=media, 
-            fields='id',
+            fields='id'
+        ).execute()
+        
+        file_id = uploaded_file.get('id')
+        
+        # 2. IMMEDIATE FIX: Transfer file ownership directly to you
+        # This moves the file storage cost off the robot onto your personal account quota
+        user_permission = {
+            'type': 'user',
+            'role': 'owner',
+            'emailAddress': 'yousufrose56@gmail.com'
+        }
+        
+        service.permissions().create(
+            fileId=file_id,
+            body=user_permission,
+            transferOwnership=True,
             supportsAllDrives=True
         ).execute()
         
-        return uploaded_file.get('id')
+        return file_id
     except Exception as e:
         st.error(f"Upload failed: {e}")
         return None
