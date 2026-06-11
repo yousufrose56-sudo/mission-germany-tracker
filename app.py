@@ -11,6 +11,7 @@ def get_sheet_data():
     return client.open("Mission_Germany_CRM").sheet1
 
 # --- LOGIN LOGIC ---
+st.set_page_config(page_title="Mission Germany CRM", layout="wide")
 st.sidebar.title("Login")
 user_email = st.sidebar.text_input("Email")
 password = st.sidebar.text_input("Password", type="password")
@@ -21,14 +22,15 @@ if user_email == "yousuf@gmail.com":
     try:
         sheet = get_sheet_data()
         data = sheet.get_all_records()
-        st.table(data)
+        # Using dataframe allows sorting and better visualization for 50+ students
+        st.dataframe(data, use_container_width=True) 
     except Exception as e:
         st.error(f"Could not load Google Sheet: {e}")
 else:
     st.header("Student Dashboard")
     st.write("Welcome! Please log in to see your personalized tracker.")
 
-# --- CLOUDINARY LOGIC (Kept for your file uploads) ---
+# --- CLOUDINARY LOGIC ---
 cloudinary.config(
     cloud_name = st.secrets["cloudinary"]["cloud_name"],
     api_key = st.secrets["cloudinary"]["api_key"],
