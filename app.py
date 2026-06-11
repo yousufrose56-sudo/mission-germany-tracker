@@ -5,7 +5,8 @@ import os
 try:
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaIoBaseUpload
-    from google.oauth2 import service_account
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
     import io
     HAS_GOOGLE = True
 except ImportError:
@@ -16,18 +17,20 @@ st.title("🇩🇪 Mission Germany: Masters Application Tracker")
 st.caption("Powered by TEN GERMANY | The Education Network")
 st.markdown("---")
 
-# Function to upload file to Google Drive
+# Function to upload file to Google Drive using personal token credentials
 def upload_to_drive(file, filename):
     if not HAS_GOOGLE:
         st.error("Google libraries are missing. Please add them to requirements.txt")
         return None
     try:
-        # Load credentials from Streamlit Secrets
-        creds_dict = st.secrets["gcp_service_account"]
-        creds = service_account.Credentials.from_service_account_info(
-            creds_dict,
-            scopes=["https://www.googleapis.com/auth/drive"]
-        )
+        # Load user credentials from Streamlit Secrets to bypass robot 0-byte quota
+        token_info = st.secrets["google_user_credentials"]
+        creds = Credentials.from_authorized_user_info(token_info)
+        
+        # Automatically refresh the token if it expires
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            
         service = build('drive', 'v3', credentials=creds)
         
         # Define folder ID where files will save
@@ -37,35 +40,16 @@ def upload_to_drive(file, filename):
         if folder_id:
             file_metadata['parents'] = [folder_id]
             
-        # Read file data cleanly as bytes
         file_data = file.read()
         media = MediaIoBaseUpload(io.BytesIO(file_data), mimetype='application/pdf', resumable=True)
         
-        # 1. Create the file under the service account
         uploaded_file = service.files().create(
             body=file_metadata, 
             media_body=media, 
             fields='id'
         ).execute()
         
-        file_id = uploaded_file.get('id')
-        
-        # 2. IMMEDIATE FIX: Transfer file ownership directly to you
-        # This moves the file storage cost off the robot onto your personal account quota
-        user_permission = {
-            'type': 'user',
-            'role': 'owner',
-            'emailAddress': 'yousufrose56@gmail.com'
-        }
-        
-        service.permissions().create(
-            fileId=file_id,
-            body=user_permission,
-            transferOwnership=True,
-            supportsAllDrives=True
-        ).execute()
-        
-        return file_id
+        return uploaded_file.get('id')
     except Exception as e:
         st.error(f"Upload failed: {e}")
         return None
