@@ -19,17 +19,14 @@ def get_sheet(tab_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # This rebuilds the key perfectly, preventing the 'Unused bytes' error
-    raw_key = creds_dict["private_key"].strip()
-    creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{raw_key}\n-----END PRIVATE KEY-----\n"
+    # Take the raw key, add the newlines, and wrap in headers
+    key = creds_dict["private_key"]
+    # We break the long string into chunks of 64 characters to match PEM format
+    formatted_key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join([key[i:i+64] for i in range(0, len(key), 64)]) + "\n-----END PRIVATE KEY-----\n"
+    creds_dict["private_key"] = formatted_key
     
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-    return client.open("Mission_Germany_CRM").worksheet(tab_name)
-# --- LOGIN LOGIC ---
-st.sidebar.title("Login")
-user_email = st.sidebar.text_input("Email")
-password = st.sidebar.text_input("Password", type="password")
+    client = gspread.authorize
 
 # --- MAIN APP LOGIC ---
 if user_email == "yousuf@gmail.com":
