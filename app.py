@@ -24,7 +24,16 @@ def upload_to_drive(file, filename):
     try:
         # Load credentials from Streamlit Secrets
         creds_dict = st.secrets["gcp_service_account"]
-        creds = service_account.Credentials.from_service_account_info(creds_dict)
+        
+        # FIX: Explicitly add your personal Gmail account here to act as the storage owner
+        # Replace 'YOUR_PERSONAL_GMAIL@gmail.com' with your actual main Google Drive email!
+        user_to_impersonate = "YOUR_PERSONAL_GMAIL@gmail.com" 
+        
+        creds = service_account.Credentials.from_service_account_info(
+            creds_dict,
+            scopes=["https://www.googleapis.com/auth/drive"],
+            subject=user_to_impersonate
+        )
         service = build('drive', 'v3', credentials=creds)
         
         # Define folder ID where files will save
@@ -36,13 +45,11 @@ def upload_to_drive(file, filename):
             
         media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype='application/pdf', resumable=True)
         
-        # Updated setup to bypass the Service Account storage quota limits completely
         uploaded_file = service.files().create(
             body=file_metadata, 
             media_body=media, 
             fields='id',
-            supportsAllDrives=True,
-            keepRevisionForever=False
+            supportsAllDrives=True
         ).execute()
         
         return uploaded_file.get('id')
