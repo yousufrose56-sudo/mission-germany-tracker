@@ -1,12 +1,10 @@
 import streamlit as st
 import os
 
-# Try to import google api libraries
 try:
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaIoBaseUpload
-    from google.auth.transport.requests import Request
-    from google.oauth2.credentials import Credentials
+    from google.oauth2 import service_account
     import io
     HAS_GOOGLE = True
 except ImportError:
@@ -17,38 +15,30 @@ st.title("🇩🇪 Mission Germany: Masters Application Tracker")
 st.caption("Powered by TEN GERMANY | The Education Network")
 st.markdown("---")
 
-# Function to upload file to Google Drive using personal token credentials
 def upload_to_drive(file, filename):
     if not HAS_GOOGLE:
         st.error("Google libraries are missing. Please add them to requirements.txt")
         return None
     try:
-        # Load user credentials from Streamlit Secrets to bypass robot 0-byte quota
-        token_info = st.secrets["google_user_credentials"]
-        creds = Credentials.from_authorized_user_info(token_info)
-        
-        # Automatically refresh the token if it expires
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = service_account.Credentials.from_service_account_info(
+            creds_dict,
+            scopes=["https://www.googleapis.com/auth/drive"]
+        )
         service = build('drive', 'v3', credentials=creds)
-        
-        # Define folder ID where files will save
         folder_id = st.secrets.get("google_drive_folder_id", None)
         
         file_metadata = {'name': filename}
         if folder_id:
             file_metadata['parents'] = [folder_id]
             
-        file_data = file.read()
-        media = MediaIoBaseUpload(io.BytesIO(file_data), mimetype='application/pdf', resumable=True)
-        
+        media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype='application/pdf', resumable=True)
         uploaded_file = service.files().create(
             body=file_metadata, 
             media_body=media, 
-            fields='id'
+            fields='id',
+            supportsAllDrives=True
         ).execute()
-        
         return uploaded_file.get('id')
     except Exception as e:
         st.error(f"Upload failed: {e}")
