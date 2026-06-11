@@ -27,7 +27,7 @@ def upload_to_drive(file, filename):
         creds = service_account.Credentials.from_service_account_info(creds_dict)
         service = build('drive', 'v3', credentials=creds)
         
-        # Define folder ID where files will save (We will set this up next)
+        # Define folder ID where files will save
         folder_id = st.secrets.get("google_drive_folder_id", None)
         
         file_metadata = {'name': filename}
@@ -35,7 +35,15 @@ def upload_to_drive(file, filename):
             file_metadata['parents'] = [folder_id]
             
         media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype='application/pdf', resumable=True)
-        uploaded_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        
+        # FIXED: Added supportsAllDrives=True to bypass service account quota limitations
+        uploaded_file = service.files().create(
+            body=file_metadata, 
+            media_body=media, 
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
+        
         return uploaded_file.get('id')
     except Exception as e:
         st.error(f"Upload failed: {e}")
