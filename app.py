@@ -19,7 +19,7 @@ def get_sheet(tab_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # Force the key into the exact format gspread expects
+    # This rebuilds the key perfectly, preventing the 'Unused bytes' error
     raw_key = creds_dict["private_key"].strip()
     creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{raw_key}\n-----END PRIVATE KEY-----\n"
     
