@@ -17,12 +17,15 @@ cloudinary.config(
 @st.cache_resource
 def get_sheet(tab_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds_dict = dict(st.secrets["gcp_service_account"])
-    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
     
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    # Get credentials from secrets and handle the private key newline formatting
+    secrets_dict = dict(st.secrets["gcp_service_account"])
+    secrets_dict["private_key"] = secrets_dict["private_key"].replace("\\n", "\n")
+    
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(secrets_dict, scope)
     client = gspread.authorize(creds)
-    # Opens the specific tab (worksheets) by name
+    
+    # Opens the specific tab by name
     return client.open("Mission_Germany_CRM").worksheet(tab_name)
 
 # --- LOGIN LOGIC ---
@@ -43,11 +46,12 @@ if user_email == "yousuf@gmail.com":
             st.write("No student records found in the 'Students' tab.")
     except Exception as e:
         st.error(f"Error connecting to Google Sheets: {e}")
-        st.write("Check that your sheet name is 'Mission_Germany_CRM' and tab name is 'Students'.")
+        st.write("Ensure your Google Sheet is named 'Mission_Germany_CRM' and has a tab named 'Students'.")
+        st.write("Also, ensure the service account email is added as an 'Editor' on the Google Sheet.")
 
 elif user_email:
     st.header(f"Welcome, {user_email}")
-    st.write("Student dashboard access in progress.")
+    st.write("Student dashboard access is currently in development.")
 else:
     st.title("🇩🇪 Mission Germany CRM")
-    st.write("Please log in via the sidebar.")
+    st.write("Please log in via the sidebar to access the dashboard.")
