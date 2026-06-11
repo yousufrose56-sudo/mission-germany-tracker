@@ -17,20 +17,15 @@ cloudinary.config(
 @st.cache_resource
 def get_sheet(tab_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
-    # Create a copy of secrets dictionary
     creds_dict = dict(st.secrets["gcp_service_account"])
     
-    # Format the private key
+    # Force the key into the exact format gspread expects
     raw_key = creds_dict["private_key"].strip()
     creds_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{raw_key}\n-----END PRIVATE KEY-----\n"
     
-    # Authorize
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    
     return client.open("Mission_Germany_CRM").worksheet(tab_name)
-
 # --- LOGIN LOGIC ---
 st.sidebar.title("Login")
 user_email = st.sidebar.text_input("Email")
