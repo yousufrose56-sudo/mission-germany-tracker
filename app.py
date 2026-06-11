@@ -18,14 +18,17 @@ cloudinary.config(
 def get_sheet(tab_name):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     
-    # Get credentials from secrets and handle the private key newline formatting
+    # Get secrets as a dictionary
     secrets_dict = dict(st.secrets["gcp_service_account"])
-    secrets_dict["private_key"] = secrets_dict["private_key"].replace("\\n", "\n")
+    
+    # IMPORTANT: We reconstruct the standard key format if it's missing the headers
+    # This ensures Google's library receives exactly what it needs
+    raw_key = secrets_dict["private_key"]
+    if "-----BEGIN PRIVATE KEY-----" not in raw_key:
+        secrets_dict["private_key"] = f"-----BEGIN PRIVATE KEY-----\n{raw_key}\n-----END PRIVATE KEY-----"
     
     creds = ServiceAccountCredentials.from_json_keyfile_dict(secrets_dict, scope)
     client = gspread.authorize(creds)
-    
-    # Opens the specific tab by name
     return client.open("Mission_Germany_CRM").worksheet(tab_name)
 
 # --- LOGIN LOGIC ---
