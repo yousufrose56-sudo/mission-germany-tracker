@@ -25,9 +25,8 @@ def upload_to_drive(file, filename):
         # Load credentials from Streamlit Secrets
         creds_dict = st.secrets["gcp_service_account"]
         
-        # FIX: Explicitly add your personal Gmail account here to act as the storage owner
-        # Replace 'YOUR_PERSONAL_GMAIL@gmail.com' with your actual main Google Drive email!
-        user_to_impersonate = "YOUR_PERSONAL_GMAIL@gmail.com" 
+        # FIXED: Using your real email address to bypass the 0-byte quota wall
+        user_to_impersonate = "yousufrose56@gmail.com" 
         
         creds = service_account.Credentials.from_service_account_info(
             creds_dict,
